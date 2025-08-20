@@ -1,24 +1,72 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
+import { productAPI } from '../../services/api';
 import styles from './ProductInfo.module.css';
 import plantImage from '../../assets/images/plant.png';
 
 const ProductInfo = () => {
   const navigate = useNavigate();
   const { state } = useLocation();
+  const { productId } = useParams();
   
-  // Use passed product data or default values
-  const product = state?.product || {
-    id: 1,
-    name: "Artificial Plants",
-    price: 900.00,
-    rating: 5,
-    description: "Jorem ipsum dolor sit amet, consectetur adipiscing elit, turp euiputtes libero et velit interdum, ac aliquet odio mattis. Claus aptent taciti sociosot od iitora torquent per convulo nostro, per inceptos himeneeps.",
-    inStock: true,
-    image: plantImage
+  // Get product from navigation state, or use productId to fetch, or use default
+  const getInitialProduct = () => {
+    if (state?.product) {
+      return state.product;
+    }
+    // If we have productId but no state, we'll need to fetch the product
+    // For now, return a default structure
+    return {
+      id: productId || 1,
+      name: "Loading...",
+      price: 0.00,
+      rating: 5,
+      description: "Loading product details...",
+      inStock: true,
+      image: plantImage
+    };
   };
 
+  const [productData, setProductData] = useState(getInitialProduct());
   const [quantity, setQuantity] = useState(1);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch product if we only have productId
+  React.useEffect(() => {
+    if (!state?.product && productId) {
+      fetchProductById(productId);
+    }
+  }, [productId, state]);
+
+  const fetchProductById = async (id) => {
+    setLoading(true);
+    try {
+      const data = await productAPI.getProductInfo(id);
+      
+      // Transform backend data to frontend format
+      const transformedProduct = {
+        ...data,
+        id: data._id || data.productId,
+        name: data.name,
+        image: data.images && data.images.length > 0 
+          ? `http://localhost:5000${data.images[0]}` 
+          : plantImage,
+        rating: data.rating || 4.5,
+        price: data.price,
+        inStock: data.isAvailable !== false,
+        description: data.description || 'No description available',
+        category: data.category || 'Indoor Plants'
+      };
+      
+      setProductData(transformedProduct);
+    } catch (error) {
+      console.error('Error fetching product:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const product = productData;
 
   const handleAddToCart = () => {
     // Create cart item with product and quantity
@@ -60,13 +108,42 @@ const ProductInfo = () => {
     setQuantity(prev => Math.max(1, prev - 1));
   };
 
+  // Get the image URL - handle different property names and ensure full URL
+  const getImageUrl = () => {
+    let imageUrl = product.image || product.img;
+    
+    if (!imageUrl) {
+      return plantImage;
+    }
+    
+    // If it's already a full URL, return as is
+    if (imageUrl.startsWith('http')) {
+      return imageUrl;
+    }
+    
+    // If it starts with /, it's a relative path from server
+    if (imageUrl.startsWith('/')) {
+      return `http://localhost:5000${imageUrl}`;
+    }
+    
+    return imageUrl;
+  };
+
+  if (loading) {
+    return <div className={styles.loading}>Loading product details...</div>;
+  }
+
   return (
     <div className={styles.productContainer}>
       <div className={styles.imageContainer}>
         <img 
-          src={product.image} 
+          src={getImageUrl()} 
           alt={product.name} 
-          className={styles.productImage} 
+          className={styles.productImage}
+          onError={(e) => {
+            // Fallback if image fails to load
+            e.target.src = plantImage;
+          }}
         />
       </div>
       
@@ -76,20 +153,48 @@ const ProductInfo = () => {
           {[...Array(5)].map((_, i) => (
             <span
               key={i}
-              className={`${styles.star} ${i < product.rating ? styles.filled : ''}`}
+              className={`${styles.star} ${i < (product.rating || 5) ? styles.filled : ''}`}
             >
               ★
             </span>
           ))}
+          <span className={styles.ratingText}>({product.rating || 5})</span>
         </div>
 
-        <h1 className={styles.productTitle}>{product.name}</h1>
+        <h1 className={styles.productTitle}>{product.name || product.title}</h1>
+        
+        {/* Category */}
+        {product.category && (
+          <div className={styles.category}>
+            Category: {product.category}
+          </div>
+        )}
+        
         <div className={styles.price}>LKR {product.price.toFixed(2)}</div>
+        
         <div className={styles.stock}>
-          {product.inStock ? 'In stock' : 'Out of stock'}
+          <span className={product.inStock ? styles.inStock : styles.outOfStock}>
+            {product.inStock ? '✓ In stock' : '✗ Out of stock'}
+          </span>
         </div>
         
-        <p className={styles.description}>{product.description}</p>
+        {/* Additional product details */}
+        {product.dimensions && (
+          <div className={styles.dimensions}>
+            <strong>Dimensions:</strong> {product.dimensions}
+          </div>
+        )}
+        
+        {product.reviews && (
+          <div className={styles.reviewCount}>
+            {product.reviews} customer reviews
+          </div>
+        )}
+        
+        <div className={styles.description}>
+          <h3>Description</h3>
+          <p>{product.description}</p>
+        </div>
         
         <div className={styles.quantitySelector}>
           <label>Quantity:</label>

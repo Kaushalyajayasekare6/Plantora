@@ -1,36 +1,60 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import styles from "./ProductsPage.module.css";
 import ProductCard from "../../components/ProductCard";
-import plantImg from "../../assets/images.png"; // sample image
+import plantImg from "../../assets/images.png"; // fallback image
 import Footer from "../../components/Footer/Footer";
 import Navbar from "../../components/Navbar/Navbar";
+import { productAPI } from "../../services/api";
 
 const ProductsPage = () => {
-  const products = [
-    { id: 1, title: "Snake Plant", price: "LKR 2500.00", category: "Natural", img: plantImg },
-    { id: 2, title: "Peace Lily", price: "LKR 3000.00", category: "Natural", img: plantImg },
-    { id: 3, title: "Artificial Fern", price: "LKR 1800.00", category: "Artificial", img: plantImg },
-    { id: 4, title: "Artificial Bamboo", price: "LKR 2200.00", category: "Artificial", img: plantImg },
-    { id: 5, title: "Aloe Vera", price: "LKR 2000.00", category: "Natural", img: plantImg },
-    { id: 6, title: "Artificial Orchid", price: "LKR 2700.00", category: "Artificial", img: plantImg },
-    { id: 7, title: "Money Plant", price: "LKR 1900.00", category: "Natural", img: plantImg },
-    { id: 8, title: "Artificial Palm", price: "LKR 3500.00", category: "Artificial", img: plantImg },
-    { id: 9, title: "Ceramic Pot", price: "LKR 1200.00", category: "Plant Accessories", img: plantImg },
-    { id: 10, title: "Watering Can", price: "LKR 1500.00", category: "Plant Accessories", img: plantImg },
-    { id: 11, title: "Soil Pack", price: "LKR 800.00", category: "Plant Accessories", img: plantImg },
-    { id: 12, title: "Fertilizer Spray", price: "LKR 950.00", category: "Plant Accessories", img: plantImg }
-  ];
-
+  const [products, setProducts] = useState([]);
   const [filter, setFilter] = useState("all");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await productAPI.getAllProducts();
+        
+        // Transform products to match ProductCard expectations
+        const transformedProducts = data.map((product) => ({
+          ...product,
+          // Map backend fields to frontend expectations
+          id: product._id || product.productId, // Use _id or productId as id
+          title: product.name, // Map name to title
+          img: product.images && product.images.length > 0 
+            ? `http://localhost:5000${product.images[0]}` // Construct full URL
+            : plantImg, // Fallback image
+          // Keep original fields for compatibility
+          name: product.name,
+          image: product.images && product.images.length > 0 
+            ? `http://localhost:5000${product.images[0]}` 
+            : plantImg,
+          rating: product.rating || 4.5, // Default rating if not provided
+          price: product.price
+        }));
+        
+        setProducts(transformedProducts);
+      } catch (err) {
+        console.error("Error fetching products:", err);
+        setError("Failed to load products.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProducts();
+  }, []);
 
   const filteredProducts =
     filter === "all"
       ? products
-      : products.filter((p) => p.category.toLowerCase() === filter.toLowerCase());
+      : products.filter((p) => (p.category || "").toLowerCase() === filter.toLowerCase());
 
   return (
     <div className={styles.pageWrapper}>
-      {/* ✅ Navbar at the top */}
       <Navbar />
 
       <div className={styles.productsPage}>
@@ -47,11 +71,19 @@ const ProductsPage = () => {
           </select>
         </div>
 
-        <div className={styles.productsGrid}>
-          {filteredProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        {loading ? (
+          <div className={styles.loading}>Loading products...</div>
+        ) : error ? (
+          <div className={styles.error}>{error}</div>
+        ) : filteredProducts.length === 0 ? (
+          <div className={styles.noProducts}>No products found</div>
+        ) : (
+          <div className={styles.productsGrid}>
+            {filteredProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        )}
       </div>
 
       <Footer />

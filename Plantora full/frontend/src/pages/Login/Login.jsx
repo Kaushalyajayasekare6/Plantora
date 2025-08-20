@@ -27,6 +27,38 @@ function Login() {
         navigate('/home');
     };
 
+    function login(){
+        console.log(email, password)
+        axios.post(import.meta.env.VITE_BACKEND_URL+"/api/users/login",{
+            email: email,
+            password: password
+        }).then(
+            (response)=>{
+                console.log(response.data)
+                localStorage.setItem("token",response.data.token)
+
+                // const token = localStorage.getItem("token")
+                toast.success("login successful")
+                if(response.data.role == "admin"){
+
+                    //window.location.href = "/admin"
+                    navigate("/admin")
+
+                }else if(response.data.role == "user"){
+
+                    //window.location.href = "/"
+                    navigate("/")
+
+                }
+            }
+        ).catch(
+            (error)=>{
+                console.log(error)
+                toast.error("Login Failed")
+            }
+        )
+    }
+
     return (
         <div className={styles.container}>
             <div className={styles.formContainer}>

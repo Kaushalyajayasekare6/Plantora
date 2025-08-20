@@ -7,17 +7,13 @@ import styles from './ProductOverView.module.css';
 
 const ProductOverView = () => {
   return (
-    
     <div className={styles.homePage}>
-                    <Navbar />
-
+      <Navbar />
       <main className={styles.mainContent}>
-
         <ProductInfo />
         <Reviews />
       </main>
       <Footer />
-
     </div>
   );
 };

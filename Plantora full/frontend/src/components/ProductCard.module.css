@@ -48,3 +48,19 @@
 .star {
   margin-right: 2px;
 }
+.add-to-cart-btn {
+  margin-top: 16px;
+  padding: 8px 18px;
+  background-color: #4CAF50;
+  color: #fff;
+  border: none;
+  border-radius: 22px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.08);
+}
+
+.add-to-cart-btn:hover {
+  background-color: #388e3c;
+}

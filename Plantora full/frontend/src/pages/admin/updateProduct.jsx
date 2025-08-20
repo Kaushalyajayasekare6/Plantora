@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { productAPI } from '../../services/api'
+import { productAPI } from '../../services/api';
 import './admin.css'
 
 export default function ProductUpdate(){
@@ -52,13 +52,32 @@ export default function ProductUpdate(){
 				throw new Error('Please fill in all required fields');
 			}
 
-			// Convert price to number
+			// Validate price
+			const price = parseFloat(formData.price);
+			if (isNaN(price) || price < 0) {
+				throw new Error('Please enter a valid positive price');
+			}
+
+			// Create update data object
 			const updateData = {
-				...formData,
-				price: parseFloat(formData.price)
+				name: formData.name.trim(),
+				description: formData.description.trim(),
+				price: price,
+				category: formData.category.trim(),
+				isAvailable: formData.isAvailable
 			};
 
-			await productAPI.updateProduct(productData._id, updateData);
+			console.log('Product data received:', productData);
+			console.log('Updating product with ID:', productData.productId);
+			console.log('Update data:', updateData);
+
+			// Debug: Check if productId exists
+			if (!productData.productId) {
+				throw new Error('Product ID is missing from product data');
+			}
+
+			// Use the custom productId (not MongoDB _id) for the update
+			await productAPI.updateProduct(productData.productId, updateData);
 			alert('Product updated successfully!');
 			
 			// Navigate back to products list
@@ -79,7 +98,16 @@ export default function ProductUpdate(){
 		return (
 			<div className='dashboard'>
 				<h1 className='dashboard-title'>Update Product</h1>
-				<div className='error-message'>No product data found. Please go back and select a product to update.</div>
+				<div className='error-message' style={{
+					backgroundColor: '#fee',
+					border: '1px solid #fcc',
+					color: '#c33',
+					padding: '10px',
+					marginBottom: '20px',
+					borderRadius: '4px'
+				}}>
+					No product data found. Please go back and select a product to update.
+				</div>
 				<button onClick={handleCancel} className='cancel-btn'>Go Back</button>
 			</div>
 		);
@@ -89,7 +117,16 @@ export default function ProductUpdate(){
 		<div className='dashboard'>
 			<h1 className='dashboard-title'>Update Product</h1>
 			{error && (
-				<div className='error-message'>{error}</div>
+				<div className='error-message' style={{
+					backgroundColor: '#fee',
+					border: '1px solid #fcc',
+					color: '#c33',
+					padding: '10px',
+					marginBottom: '20px',
+					borderRadius: '4px'
+				}}>
+					{error}
+				</div>
 			)}
 			<form className='add-product-form' onSubmit={handleSubmit}>
 				<div className='form-group'>
@@ -103,7 +140,11 @@ export default function ProductUpdate(){
 						className='form-input'
 						required
 						placeholder='Enter unique product ID'
+						disabled={true} // Disable editing of productId during update
+						style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+						title='Product ID cannot be changed during update'
 					/>
+					<small className='form-help'>Product ID cannot be changed after creation</small>
 				</div>
 
 				<div className='form-group'>
@@ -117,6 +158,7 @@ export default function ProductUpdate(){
 						className='form-input'
 						required
 						placeholder='Enter product name'
+						maxLength={100}
 					/>
 				</div>
 
@@ -131,6 +173,7 @@ export default function ProductUpdate(){
 						rows='4'
 						required
 						placeholder='Enter product description'
+						maxLength={1000}
 					></textarea>
 				</div>
 

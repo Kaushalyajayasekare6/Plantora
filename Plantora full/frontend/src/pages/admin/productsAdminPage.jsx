@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { productAPI } from '../../services/api'
-import { getImageUrl, handleImageError } from '../../utils/imageUtils'
+import { productAPI } from '../../services/api';
+import { getImageUrl, handleImageError } from '../../utils/imageUtils';
 import './admin.css'
 export default function ProductAdmin(){
 	const navigate = useNavigate();

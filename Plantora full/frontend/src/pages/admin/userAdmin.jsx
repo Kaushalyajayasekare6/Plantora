@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { userAPI } from '../../services/api'
+import { userAPI } from "../../services/api";
 import './admin.css'
 export default function UserAdmin(){
 	const [users, setUsers] = useState([]);

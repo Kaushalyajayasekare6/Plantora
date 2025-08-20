@@ -3,6 +3,7 @@ import { FcGoogle } from "react-icons/fc";
 import { FaApple, FaEye, FaEyeSlash } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import styles from './Signup.module.css';
+import { userAPI } from '../../services/api';
 
 function Signup() {
     const [name, setName] = useState("");
@@ -10,6 +11,7 @@ function Signup() {
     const [password, setPassword] = useState("");
     const [agreed, setAgreed] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
     const validateForm = () => {
@@ -44,13 +46,58 @@ function Signup() {
         return true;
     };
 
-    const handleSubmit = (e) => {
+    // Helper to split name
+    const splitName = (fullName) => {
+        const parts = fullName.trim().split(' ');
+        const firstName = parts[0];
+        const lastName = parts.slice(1).join(' ') || '';
+        return { firstName, lastName };
+    };
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (!validateForm()) return;
-        
-        console.log("Signup data", { name, email, password, agreed });
-        alert(`Welcome, ${name}! You have successfully joined us`);
-        navigate('/home');
+
+        setLoading(true);
+        const { firstName, lastName } = splitName(name);
+
+        try {
+            console.log('Attempting to sign up with:', {
+                firstName,
+                lastName: lastName || 'N/A',
+                email,
+                role: 'user'
+            });
+
+            // Use the correct API function name
+            const response = await userAPI.signupUser({
+                firstName: firstName,
+                lastName: lastName || '', // Provide empty string if no last name
+                email: email.trim().toLowerCase(),
+                password: password,
+                role: 'user'
+            });
+
+            console.log('Signup response:', response);
+
+            // The response is already parsed JSON from the API function
+            if (response && response.message) {
+                if (response.message === "User created successfully") {
+                    alert(`Welcome, ${firstName}! You have successfully joined us`);
+                    navigate('/login'); // Navigate to login instead of home
+                } else {
+                    alert(response.message);
+                }
+            } else {
+                alert("Signup successful! Please log in.");
+                navigate('/login');
+            }
+        } catch (error) {
+            console.error('Signup error:', error);
+            alert(error.message || "Signup failed. Please try again.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -63,10 +110,11 @@ function Signup() {
                         <label className={styles.label}>Name</label>
                         <input
                             type="text"
-                            placeholder="Enter your name"
+                            placeholder="Enter your full name"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             className={styles.input}
+                            maxLength={50}
                         />
                     </div>
 
@@ -78,6 +126,7 @@ function Signup() {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             className={styles.input}
+                            maxLength={100}
                         />
                     </div>
 
@@ -86,10 +135,11 @@ function Signup() {
                         <div className={styles.passwordWrapper}>
                             <input
                                 type={showPassword ? "text" : "password"}
-                                placeholder="Enter your password"
+                                placeholder="Enter your password (min 6 characters)"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 className={`${styles.input} ${styles.passwordInput}`}
+                                maxLength={50}
                             />
                             <button
                                 type="button"
@@ -114,7 +164,9 @@ function Signup() {
                         </label>
                     </div>
 
-                    <button type="submit" className={styles.signupButton}>Sign Up</button>
+                    <button type="submit" className={styles.signupButton} disabled={loading}>
+                        {loading ? "Signing Up..." : "Sign Up"}
+                    </button>
 
                     <div className={styles.divider}>
                         <span className={styles.dividerText}>or</span>

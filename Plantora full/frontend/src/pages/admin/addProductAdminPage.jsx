@@ -81,23 +81,47 @@ export default function ProductAdd(){
 				throw new Error('Please fill in all required fields');
 			}
 
+			// Validate price
+			const price = parseFloat(formData.price);
+			if (isNaN(price) || price < 0) {
+				throw new Error('Please enter a valid positive price');
+			}
+
+			// Validate productId format (no spaces, special characters)
+			const productIdRegex = /^[a-zA-Z0-9_-]+$/;
+			if (!productIdRegex.test(formData.productId)) {
+				throw new Error('Product ID can only contain letters, numbers, hyphens, and underscores');
+			}
+
 			// Create FormData for file upload
 			const productFormData = new FormData();
 			
-			// Append text fields
-			productFormData.append('productId', formData.productId);
-			productFormData.append('name', formData.name);
-			productFormData.append('description', formData.description);
-			productFormData.append('price', parseFloat(formData.price));
-			productFormData.append('category', formData.category);
-			productFormData.append('isAvailable', formData.isAvailable);
+			// Append text fields - ensure they're strings
+			productFormData.append('productId', formData.productId.toString().trim());
+			productFormData.append('name', formData.name.toString().trim());
+			productFormData.append('description', formData.description.toString().trim());
+			productFormData.append('price', price.toString());
+			productFormData.append('category', formData.category.toString().trim());
+			productFormData.append('isAvailable', formData.isAvailable.toString());
 
 			// Append image files
 			selectedImages.forEach((image) => {
 				productFormData.append('images', image);
 			});
 
-			await productAPI.createProduct(productFormData);
+			console.log('Submitting product data:', {
+				productId: formData.productId,
+				name: formData.name,
+				description: formData.description,
+				price: price,
+				category: formData.category,
+				isAvailable: formData.isAvailable,
+				imageCount: selectedImages.length
+			});
+
+			const result = await productAPI.createProduct(productFormData);
+			console.log('Product creation result:', result);
+			
 			alert('Product added successfully!');
 			
 			// Clean up preview URLs
@@ -118,8 +142,8 @@ export default function ProductAdd(){
 			// Navigate back to products list
 			navigate('/admin/');
 		} catch (err) {
-			setError(err.message);
 			console.error('Error adding product:', err);
+			setError(err.message);
 		} finally {
 			setLoading(false);
 		}
@@ -129,7 +153,16 @@ export default function ProductAdd(){
 		<div className='dashboard'>
 			<h1 className='dashboard-title'>Add Product</h1>
 			{error && (
-				<div className='error-message'>{error}</div>
+				<div className='error-message' style={{
+					backgroundColor: '#fee',
+					border: '1px solid #fcc',
+					color: '#c33',
+					padding: '10px',
+					marginBottom: '20px',
+					borderRadius: '4px'
+				}}>
+					{error}
+				</div>
 			)}
 			<form className='add-product-form' onSubmit={handleSubmit}>
 				<div className='form-group'>
@@ -142,7 +175,9 @@ export default function ProductAdd(){
 						onChange={handleChange}
 						className='form-input'
 						required
-						placeholder='Enter unique product ID'
+						placeholder='Enter unique product ID (letters, numbers, hyphens, underscores only)'
+						pattern='[a-zA-Z0-9_-]+'
+						title='Product ID can only contain letters, numbers, hyphens, and underscores'
 					/>
 				</div>
 
@@ -157,6 +192,7 @@ export default function ProductAdd(){
 						className='form-input'
 						required
 						placeholder='Enter product name'
+						maxLength={100}
 					/>
 				</div>
 
@@ -171,6 +207,7 @@ export default function ProductAdd(){
 						rows='4'
 						required
 						placeholder='Enter product description'
+						maxLength={1000}
 					></textarea>
 				</div>
 
